@@ -1,0 +1,16 @@
+stage,check,pass_condition
+source,Correct source selected,The transcript belongs to the intended public video or authorized file
+source,Complete spoken section,The transcript covers the full section that should be delivered
+source,Uncertain speech marked,Unclear words are identified rather than invented
+text,Names and terms checked,Names product terms and acronyms match the source
+text,Readable punctuation,Sentence boundaries improve reading without changing meaning
+text,Accidental repetition removed,Duplicated phrases introduced by transcription are removed
+text,Paragraphs reviewed,Paragraph breaks follow topic or speaker changes
+webvtt,Header present,The first non-empty line is WEBVTT
+webvtt,Cue timing complete,Every cue has a start time and end time
+webvtt,Positive cue duration,Every cue ends after it starts
+webvtt,Overlap reviewed,Adjacent cues do not overlap unintentionally
+webvtt,Cue text present,Every timed cue contains visible caption text
+delivery,TXT opened,The plain-text export opens with expected characters
+delivery,VTT opened,The caption export opens in a compatible player or editor
+delivery,Private information reviewed,Information that should not be public is removed
