@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WebVTT Cue Inspector</title>
+  <style>
+    :root { color-scheme: light dark; font: 16px/1.5 system-ui, sans-serif; }
+    body { max-width: 880px; margin: 0 auto; padding: 32px 20px; }
+    textarea { box-sizing: border-box; min-height: 320px; width: 100%; padding: 12px; font: 14px/1.45 ui-monospace, monospace; }
+    button { margin: 12px 8px 12px 0; padding: 10px 16px; cursor: pointer; }
+    .summary { font-weight: 700; }
+    li { margin: 6px 0; }
+    code { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>WebVTT Cue Inspector</h1>
+    <p>Paste WebVTT text to check its header, cue timing, empty cues, reversed cues, and overlaps. Processing stays in this browser tab.</p>
+    <label for="vtt"><strong>WebVTT text</strong></label>
+    <textarea id="vtt" spellcheck="false" placeholder="WEBVTT&#10;&#10;00:00:00.000 --> 00:00:02.000&#10;Caption text"></textarea>
+    <div>
+      <button id="inspect" type="button">Inspect cues</button>
+      <button id="clear" type="button">Clear</button>
+    </div>
+    <p class="summary" id="summary" aria-live="polite">No inspection run.</p>
+    <ol id="issues"></ol>
+  </main>
+  <script>
+    const input = document.querySelector('#vtt');
+    const summary = document.querySelector('#summary');
+    const issuesList = document.querySelector('#issues');
+
+    function parseTime(value) {
+      const match = value.trim().match(/^(?:(\d+):)?([0-5]\d):([0-5]\d)\.(\d{3})$/);
+      if (!match) return null;
+      return ((Number(match[1] || 0) * 60 + Number(match[2])) * 60 + Number(match[3])) * 1000 + Number(match[4]);
+    }
+
+    function inspect() {
+      const lines = input.value.replace(/\r/g, '').split('\n');
+      const issues = [];
+      const firstContent = lines.find(line => line.trim());
+      if (firstContent !== 'WEBVTT') issues.push('The first non-empty line must be WEBVTT.');
+
+      const cues = [];
+      for (let index = 0; index < lines.length; index += 1) {
+        if (!lines[index].includes('-->')) continue;
+        const timing = lines[index].split('-->');
+        if (timing.length !== 2) {
+          issues.push(`Line ${index + 1}: malformed cue timing.`);
+          continue;
+        }
+        const start = parseTime(timing[0]);
+        const endToken = timing[1].trim().split(/\s+/)[0];
+        const end = parseTime(endToken);
+        if (start === null || end === null) {
+          issues.push(`Line ${index + 1}: unsupported timestamp format.`);
+          continue;
+        }
+        if (end <= start) issues.push(`Line ${index + 1}: cue end must be after cue start.`);
+        const text = [];
+        for (let cursor = index + 1; cursor < lines.length && lines[cursor].trim(); cursor += 1) text.push(lines[cursor].trim());
+        if (!text.join(' ').trim()) issues.push(`Line ${index + 1}: cue has no text.`);
+        cues.push({ start, end, line: index + 1 });
+      }
+
+      cues.forEach((cue, index) => {
+        if (index > 0 && cue.start < cues[index - 1].end) {
+          issues.push(`Line ${cue.line}: cue overlaps the previous cue.`);
+        }
+      });
+
+      if (!cues.length) issues.push('No timed cues were found.');
+      summary.textContent = `${cues.length} cue${cues.length === 1 ? '' : 's'} inspected; ${issues.length} issue${issues.length === 1 ? '' : 's'} found.`;
+      issuesList.replaceChildren(...issues.map(issue => {
+        const item = document.createElement('li');
+        item.textContent = issue;
+        return item;
+      }));
+    }
+
+    document.querySelector('#inspect').addEventListener('click', inspect);
+    document.querySelector('#clear').addEventListener('click', () => {
+      input.value = '';
+      summary.textContent = 'No inspection run.';
+      issuesList.replaceChildren();
+      input.focus();
+    });
+  </script>
+</body>
+</html>
